@@ -67,8 +67,10 @@ if(APPLE AND CMAKE_OSX_DEPLOYMENT_TARGET)
     endif()
     if(CMAKE_OSX_DEPLOYMENT_TARGET VERSION_LESS 10.14)
         set(MS2K_NEED_ALIGNED_NEW ON)
-        # the replacements are linked in, so the "only available on macOS 10.14" diagnostic does not apply
-        add_compile_options("$<$<COMPILE_LANGUAGE:CXX,OBJCXX>:-Wno-aligned-allocation-unavailable>")
+        # the replacements are linked in: an explicit -faligned-allocation keeps Apple Clang from marking
+        # aligned new/delete as unavailable for this deployment target (it does so only when neither
+        # -faligned-allocation nor -fno-aligned-allocation is given)
+        add_compile_options("$<$<COMPILE_LANGUAGE:CXX,OBJCXX>:-faligned-allocation>")
     endif()
 endif()
 if(MS2K_USE_GHC_FS)

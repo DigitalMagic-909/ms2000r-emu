@@ -31,7 +31,9 @@ jobs:
             -DCMAKE_EXE_LINKER_FLAGS="-Wl,-ld_classic"
 
       - name: Build
-        run: cmake --build build --target ms2000_emulator 2>&1 | tee build.log
+        run: |
+          set -o pipefail
+          cmake --build build --target ms2000_emulator 2>&1 | tee build.log
 
       - name: Availability warnings (APIs newer than 10.9)
         run: grep -E "only available on macOS|unguarded-availability" build.log | sort -u | head -40 || true
