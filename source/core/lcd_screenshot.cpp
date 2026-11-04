@@ -1,7 +1,7 @@
 #include "lcd_screenshot.h"
 #include <ctime>
 #include <cstdio>
-#include <filesystem>
+#include "fs_compat.h"   // MAC-LEGACY: std::filesystem, or ghc::filesystem before macOS 10.15
 
 // stb_image_write for PNG generation
 #define STB_IMAGE_WRITE_SIMPLE_IMPLEMENTATION
@@ -173,7 +173,7 @@ bool LcdScreenshot::captureScreenshot(const char lcd[2][17]) {
     initFontData();
     
     // Create screenshots directory if it doesn't exist
-    std::filesystem::create_directories(screenshotDir_);
+    ms2k_fs::create_directories(screenshotDir_);
     
     // Convert LCD character array to framebuffer
     LcdFramebuffer fb;
@@ -194,7 +194,7 @@ bool LcdScreenshot::captureScreenshot(const char lcd[2][17]) {
 }
 
 bool LcdScreenshot::saveFramebuffer(const LcdFramebuffer& fb, const std::string& filename) {
-    std::filesystem::create_directories(screenshotDir_);
+    ms2k_fs::create_directories(screenshotDir_);
     std::string filepath = screenshotDir_ + "\\" + filename;
     return writePNG(filepath, fb);
 }

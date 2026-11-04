@@ -3,7 +3,7 @@
 #include <cstdint>
 #include <vector>
 #include <cstdio>
-#include <intrin.h>
+#include "returnaddress.h"
 
 #include "jitasmjithelpers.h"
 #include "jittypes.h"
@@ -81,7 +81,7 @@ namespace dsp56k
 				if (s_p < 10)
 				{
 					++s_p;
-					std::fprintf(stderr, "[TR] execOne(funcRecreate) pc=0x%06X caller=%p\n", _pc, _ReturnAddress());
+					std::fprintf(stderr, "[TR] execOne(funcRecreate) pc=0x%06X caller=%p\n", _pc, DSP56K_RETURN_ADDRESS());
 				}
 			}
 #endif

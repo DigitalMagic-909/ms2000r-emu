@@ -2,7 +2,7 @@
 
 #include <atomic>
 #include <cstdio>
-#include <intrin.h>
+#include "returnaddress.h"
 
 #include "disasm.h"
 #include "dspconfig.h"
@@ -292,7 +292,7 @@ namespace dsp56k
 				{
 					++s_pr;
 					std::fprintf(stderr, "[TR] execOneEnsureRun RECREATE pc=0x%06X chainTable=%p caller=%p\n",
-						_pc, m_jit.debugCurrentChainEntry(_pc), _ReturnAddress());
+						_pc, m_jit.debugCurrentChainEntry(_pc), DSP56K_RETURN_ADDRESS());
 				}
 			}
 

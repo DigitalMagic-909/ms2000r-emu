@@ -22,7 +22,7 @@
 #include <mutex>
 #include <ctime>
 #include <chrono>
-#include <filesystem>
+#include "../core/fs_compat.h"   // MAC-LEGACY: std::filesystem, or ghc::filesystem before macOS 10.15
 #include <cstdio>
 #include <cstring>
 #include <fstream>
@@ -186,7 +186,7 @@ int run_thin_gui(MS2000::Ms2kRunner& runner, std::function<std::unique_ptr<MS200
         ImGuiIO& fio = ImGui::GetIO();
         fio.Fonts->AddFontDefault();
         for (const std::string& cf : GuiPlatform::panelFontFiles())
-            if (std::filesystem::exists(cf)) { panelFont = fio.Fonts->AddFontFromFileTTF(cf.c_str(), 40.0f); break; }
+            if (ms2k_fs::exists(cf)) { panelFont = fio.Fonts->AddFontFromFileTTF(cf.c_str(), 40.0f); break; }
     }
     GuiPlatform::initBackends();
 
@@ -208,7 +208,7 @@ int run_thin_gui(MS2000::Ms2kRunner& runner, std::function<std::unique_ptr<MS200
         std::atomic<bool> active{false};   // PERF-124: the audio callback must not take a lock per sample when idle
         void start() {
             std::lock_guard<std::mutex> l(mx); if (f) return;
-            std::error_code ec; std::filesystem::create_directory("recordings", ec);
+            std::error_code ec; ms2k_fs::create_directory("recordings", ec);
             char nm[96]; time_t t = time(nullptr); tm lt; localtime_s(&lt, &t);
             strftime(nm, sizeof nm, "recordings/ms2000_%Y%m%d_%H%M%S.wav", &lt);
             path = nm; f = fopen(nm, "wb"); frames = 0;

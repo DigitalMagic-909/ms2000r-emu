@@ -1,7 +1,7 @@
 #include "jitblockchain.h"
 
 #include <atomic>
-#include <intrin.h>
+#include "returnaddress.h"
 #include <thread>
 #include <functional>
 
@@ -128,7 +128,7 @@ namespace dsp56k
 				std::fprintf(stderr, "[CELL] OCCUPY [0x%06X..+0x%03X) hot=%s tid=%llu caller=%p\n",
 					first, static_cast<unsigned>(_block->getPMemSize()), (first == 0xFF0000) ? "FIRST" : "INTERIOR",
 					static_cast<unsigned long long>(std::hash<std::thread::id>{}(std::this_thread::get_id())),
-					_ReturnAddress());
+					DSP56K_RETURN_ADDRESS());
 			}
 		}
 
@@ -166,7 +166,7 @@ namespace dsp56k
 					std::fprintf(stderr, "[CELL] UNOCCUPY [0x%06X..+0x%03X) tid=%llu caller=%p\n",
 						first, static_cast<unsigned>(_block->getPMemSize()),
 						static_cast<unsigned long long>(std::hash<std::thread::id>{}(std::this_thread::get_id())),
-						_ReturnAddress());
+						DSP56K_RETURN_ADDRESS());
 				}
 			}
 			m_jitCache[i].block = nullptr;
@@ -326,7 +326,7 @@ namespace dsp56k
 			if (s_pce < 20)
 			{
 				++s_pce;
-				std::fprintf(stderr, "[TR] chain-exec RECREATE pc=0x%06X caller=%p\n", _pc, _ReturnAddress());
+				std::fprintf(stderr, "[TR] chain-exec RECREATE pc=0x%06X caller=%p\n", _pc, DSP56K_RETURN_ADDRESS());
 			}
 		}
 		m_jit.getTrampoline().execOne(&m_jit.dsp().regs(), _pc, _f);

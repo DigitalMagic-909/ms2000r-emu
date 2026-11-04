@@ -17,7 +17,7 @@
 
 #include <cstdlib>
 #include <deque>
-#include <filesystem>
+#include "../../core/fs_compat.h"   // MAC-LEGACY: std::filesystem, or ghc::filesystem before macOS 10.15
 #include <mutex>
 #include <string>
 
@@ -59,7 +59,7 @@ std::string tempDir()
     std::string d = t && *t ? t : "/tmp/";
     if (d.back() != '/') d += '/';
     d += "MS2000R_au_engines";
-    std::error_code ec; std::filesystem::create_directories(d, ec);
+    std::error_code ec; ms2k_fs::create_directories(d, ec);
     return d;
 }
 
@@ -67,8 +67,8 @@ std::string tempDir()
 void cleanStaleCopies()
 {
     std::error_code ec;
-    for (const auto& e : std::filesystem::directory_iterator(tempDir(), ec))
-        if (e.path().filename().string().rfind("engine_", 0) == 0) std::filesystem::remove(e.path(), ec);
+    for (const auto& e : ms2k_fs::directory_iterator(tempDir(), ec))
+        if (e.path().filename().string().rfind("engine_", 0) == 0) ms2k_fs::remove(e.path(), ec);
 }
 
 bool loadCopy(EngineCopy& c)
@@ -101,9 +101,9 @@ EngineCopy* newCopy()
     EngineCopy c;
     c.path = tempDir() + "/engine_" + std::to_string(getpid()) + "_" + std::to_string(++counter);
     std::error_code ec;
-    if (!std::filesystem::copy_file(g_copies[0].path, c.path, std::filesystem::copy_options::overwrite_existing, ec)) return nullptr;
+    if (!ms2k_fs::copy_file(g_copies[0].path, c.path, ms2k_fs::copy_options::overwrite_existing, ec)) return nullptr;
     g_copies.push_back(c);
-    if (!loadCopy(g_copies.back())) { std::filesystem::remove(c.path, ec); g_copies.pop_back(); return nullptr; }
+    if (!loadCopy(g_copies.back())) { ms2k_fs::remove(c.path, ec); g_copies.pop_back(); return nullptr; }
     return &g_copies.back();
 }
 

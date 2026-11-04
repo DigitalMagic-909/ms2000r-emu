@@ -1,0 +1,25 @@
+MS2000R emulator - snelheidstest voor oudere Intel-Macs (OS X 10.9 en nieuwer)
+=============================================================================
+
+Dit is GEEN plugin. Het is een test die meet of je Mac snel genoeg is om de
+MS2000R-emulator in realtime te draaien.
+
+1. Zet je eigen ROM-bestanden in DEZE map, naast test-snelheid.command:
+     flash.bin       (1 MB, uit je eigen MS2000/MS2000R)
+     boot-362.bin    (768 bytes, de DSP-boot-ROM)
+
+2. Klik met de RECHTERmuisknop op test-snelheid.command en kies "Open".
+   (Bij een dubbelklik weigert macOS het de eerste keer, omdat het
+   programma niet door Apple is ondertekend.)
+
+3. Er opent een Terminal-venster. Wacht tot de uitkomst verschijnt:
+     1.3x of meer  = goed
+     1.0 - 1.3x    = krap
+     minder dan 1x = te traag
+
+Stuur de uitkomst (of het bestand resultaat.txt) naar Claude.
+
+Gebouwd voor: x86_64, minimaal OS X 10.9, zonder AVX2 (geschikt voor Ivy
+Bridge-processors zoals de i7-3615QM in de Mac mini eind 2012).
+Broncode: https://github.com/Tuth/ms2000r-emu (GPL-3.0). KORG en MS2000 zijn
+handelsmerken van KORG Inc.; dit project is niet verbonden aan KORG.

@@ -52,6 +52,42 @@ if(WIN32)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W4")
 endif()
 
+# MAC-LEGACY: Intel Macs, down to OS X 10.9 Mavericks and CPUs without AVX2 (Ivy Bridge and older).
+#   -DCMAKE_OSX_DEPLOYMENT_TARGET=10.9 -DCMAKE_OSX_ARCHITECTURES=x86_64 -DMS2K_X64_AVX2=OFF -DMS2K_X64_MARCH=ivybridge
+# Below 10.15 std::filesystem is replaced by the header-only ghc::filesystem (source/core/fs_compat.h);
+# below 10.14 the aligned operator new/delete come from source/core/aligned_new_compat.cpp.
+option(MS2K_X64_AVX2 "x86_64: build with AVX2 (Haswell and newer CPUs). OFF takes the scalar paths, as arm64 does" ON)
+set(MS2K_X64_MARCH "" CACHE STRING "x86_64 with MS2K_X64_AVX2=OFF: the -march value (e.g. ivybridge, sandybridge); empty = compiler default")
+option(MS2K_FORCE_GHC_FS "Use ghc::filesystem instead of std::filesystem on every platform (tests the legacy path)" OFF)
+set(MS2K_USE_GHC_FS ${MS2K_FORCE_GHC_FS})
+set(MS2K_NEED_ALIGNED_NEW OFF)
+if(APPLE AND CMAKE_OSX_DEPLOYMENT_TARGET)
+    if(CMAKE_OSX_DEPLOYMENT_TARGET VERSION_LESS 10.15)
+        set(MS2K_USE_GHC_FS ON)
+    endif()
+    if(CMAKE_OSX_DEPLOYMENT_TARGET VERSION_LESS 10.14)
+        set(MS2K_NEED_ALIGNED_NEW ON)
+        # the replacements are linked in, so the "only available on macOS 10.14" diagnostic does not apply
+        add_compile_options("$<$<COMPILE_LANGUAGE:CXX,OBJCXX>:-Wno-aligned-allocation-unavailable>")
+    endif()
+endif()
+if(MS2K_USE_GHC_FS)
+    include(FetchContent)
+    FetchContent_Declare(ghc_filesystem GIT_REPOSITORY https://github.com/gulrak/filesystem.git
+                                        GIT_TAG v1.5.14 GIT_SHALLOW TRUE)
+    FetchContent_MakeAvailable(ghc_filesystem)
+    include_directories(SYSTEM ${ghc_filesystem_SOURCE_DIR}/include)
+    add_compile_definitions(MS2K_USE_GHC_FILESYSTEM)
+    message(STATUS "MAC-LEGACY: ghc::filesystem instead of std::filesystem")
+endif()
+if(NOT MSVC AND NOT MS2K_X64_AVX2 AND MS2K_X64_MARCH)
+    if((CMAKE_OSX_ARCHITECTURES MATCHES "x86_64") OR (NOT CMAKE_OSX_ARCHITECTURES AND CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|AMD64"))
+        # before add_subdirectory: the dsp56300 library gets the same CPU target
+        add_compile_options(-march=${MS2K_X64_MARCH})
+        message(STATUS "MAC-LEGACY: x86_64 without AVX2, -march=${MS2K_X64_MARCH}")
+    endif()
+endif()
+
 # DSP56300 submodule
 add_subdirectory(external/dsp56300 ${CMAKE_CURRENT_BINARY_DIR}/dsp56300)
 
@@ -76,7 +112,7 @@ if(NOT MSVC)
     else()
         set(MS2K_TARGET_ARCH "${CMAKE_SYSTEM_PROCESSOR}")
     endif()
-    if(MS2K_TARGET_ARCH MATCHES "x86_64|AMD64|i[3-6]86")
+    if(MS2K_TARGET_ARCH MATCHES "x86_64|AMD64|i[3-6]86" AND MS2K_X64_AVX2)
         add_compile_options(-mavx2)
     endif()
 endif()
@@ -249,6 +285,9 @@ add_executable(ms2000_emulator
     source/core/branch_forensics.cpp
 )
 target_link_libraries(ms2000_emulator ms2000)
+if(MS2K_NEED_ALIGNED_NEW)
+    target_sources(ms2000_emulator PRIVATE source/core/aligned_new_compat.cpp)   # MAC-LEGACY
+endif()
 
 # Prevent /OPT:REF from stripping gearmulator in stub mode (~200KB)
 if(MSVC)

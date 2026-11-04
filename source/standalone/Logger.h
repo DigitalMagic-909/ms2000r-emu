@@ -6,7 +6,7 @@
 #include <chrono>
 #include <iomanip>
 #include <sstream>
-#include <filesystem>
+#include "../core/fs_compat.h"   // MAC-LEGACY: std::filesystem, or ghc::filesystem before macOS 10.15
 
 class Logger {
 public:
@@ -51,7 +51,7 @@ private:
     void openLogFile() {
         if (m_ofs.is_open()) m_ofs.close();
         // Simple log rotation: if file > 5MB, rename to .bak
-        namespace fs = std::filesystem;
+        namespace fs = ms2k_fs;
         try {
             if (fs::exists(m_logFile) && fs::file_size(m_logFile) > 5 * 1024 * 1024) {
                 fs::rename(m_logFile, m_logFile + L".bak");

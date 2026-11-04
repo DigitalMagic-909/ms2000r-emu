@@ -29,7 +29,12 @@ void ms2kAudioWorkerThread()
 // cores and does not throttle it when the app goes to the background.
 #include <pthread.h>
 #include <pthread/qos.h>
-namespace MS2000 { void ms2kAudioWorkerThread() { pthread_set_qos_class_self_np(QOS_CLASS_USER_INTERACTIVE, 0); } }
+namespace MS2000 { void ms2kAudioWorkerThread()
+{
+    // MAC-LEGACY: QoS classes exist since macOS 10.10; on 10.9 the thread keeps its default priority.
+    if (__builtin_available(macOS 10.10, *))
+        pthread_set_qos_class_self_np(QOS_CLASS_USER_INTERACTIVE, 0);
+} }
 #else
 namespace MS2000 { void ms2kAudioWorkerThread() {} }
 #endif

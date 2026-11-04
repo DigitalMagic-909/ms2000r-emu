@@ -26,7 +26,7 @@
 #include <cmath>
 #include <vector>
 #include <cstdio>
-#include <filesystem>
+#include "../core/fs_compat.h"   // MAC-LEGACY: std::filesystem, or ghc::filesystem before macOS 10.15
 #include <fstream>
 #include <algorithm>  // std::clamp
 #include <cstdlib>   // rand
@@ -547,22 +547,22 @@ extern "C" __declspec(dllimport) unsigned long __stdcall GetModuleFileNameW(void
 #include <mach-o/dyld.h>
 #include <unistd.h>
 // MAC-3: the executable's path, and whether it runs from an app bundle (Finder: no arguments, cwd = /).
-static std::filesystem::path ms2kExePath() {
+static ms2k_fs::path ms2kExePath() {
     char buf[4096]; uint32_t n = sizeof buf;
     if (_NSGetExecutablePath(buf, &n) != 0) return {};
-    std::error_code ec; const auto p = std::filesystem::canonical(buf, ec);
-    return ec ? std::filesystem::path(buf) : p;
+    std::error_code ec; const auto p = ms2k_fs::canonical(buf, ec);
+    return ec ? ms2k_fs::path(buf) : p;
 }
 static bool ms2kInAppBundle() { return ms2kExePath().string().find(".app/Contents/MacOS/") != std::string::npos; }
 // The folder the user chose once (GUI), as the plugin keeps it on Windows (%APPDATA%\MS2000R\home.txt).
-static std::filesystem::path ms2kHomeTxt() {
+static ms2k_fs::path ms2kHomeTxt() {
     const char* h = std::getenv("HOME");
-    return h ? std::filesystem::path(h) / "Library" / "Application Support" / "MS2000R" / "home.txt" : std::filesystem::path();
+    return h ? ms2k_fs::path(h) / "Library" / "Application Support" / "MS2000R" / "home.txt" : ms2k_fs::path();
 }
 #endif
-static bool ms2kHomeOk(const std::filesystem::path& d) { return ms2k::hasRoms(d); }   // ROM-PATHS-1: every boot-ROM folder variant
+static bool ms2kHomeOk(const ms2k_fs::path& d) { return ms2k::hasRoms(d); }   // ROM-PATHS-1: every boot-ROM folder variant
 static bool ms2kFindHome() {
-    namespace fs = std::filesystem;
+    namespace fs = ms2k_fs;
     auto ok = ms2kHomeOk;
     fs::path home;
     if (const char* e = std::getenv("MS2K_HOME"); e && *e && ok(fs::path(e))) home = e;
@@ -610,7 +610,7 @@ int main(int argc, char** argv) {
     // No ROM folder found: ask for it once and remember it.
     if (ms2kInAppBundle() && argc == 1) config.mode = RunMode::GUI;
     if (config.mode == RunMode::GUI && !homeFound) {
-        namespace fs = std::filesystem;
+        namespace fs = ms2k_fs;
         for (;;) {
             std::string dir;
             if (!GuiPlatform::chooseFolder("Choose the MS2000 folder - the one holding flash.bin and full FW/boot-362.bin", dir)) return 2;
@@ -625,7 +625,7 @@ int main(int argc, char** argv) {
     }
     if (config.mode == RunMode::GUI && ms2kInAppBundle() && argc == 1) {
         if (std::freopen("ms2000_gui.log", "w", stdout)) dup2(fileno(stdout), fileno(stderr));   // one file, one offset
-        std::cout << "[HOME] " << std::filesystem::current_path().string() << std::endl;
+        std::cout << "[HOME] " << ms2k_fs::current_path().string() << std::endl;
     }
 #endif
     
@@ -1130,7 +1130,7 @@ int main(int argc, char** argv) {
     }
 
     // fw15.txt: Check ROM file exists
-    if (!std::filesystem::exists(config.rom)) {
+    if (!ms2k_fs::exists(config.rom)) {
         std::cerr << "ERROR: ROM file not found: " << config.rom << std::endl;
         return 2;  // I/O error
     }
@@ -1204,7 +1204,7 @@ int main(int argc, char** argv) {
     }
     
     // fw15.txt: Handle replay-only mode
-    if (!config.replay.empty() && !std::filesystem::exists(config.replay)) {
+    if (!config.replay.empty() && !ms2k_fs::exists(config.replay)) {
         std::cerr << "ERROR: Replay file not found: " << config.replay << std::endl;
         return 2;
     }

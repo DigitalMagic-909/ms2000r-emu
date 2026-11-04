@@ -21,7 +21,12 @@
 #include <atomic>         // GUI-2: panel switches from the GUI thread
 #if defined(__x86_64__) || defined(_M_X64)
 #include <immintrin.h>  // Add SIMD support
-#define MS2K_HAVE_AVX2 1   // MAC-1: arm64 builds take the scalar paths
+// MAC-1: arm64 builds take the scalar paths. MAC-LEGACY: so does an x64 build without AVX2
+// (-DMS2K_X64_AVX2=OFF, for CPUs before Haswell); MSVC defines __AVX2__ only with /arch:AVX2,
+// so it keeps the AVX2 paths as before.
+#if defined(_MSC_VER) || defined(__AVX2__)
+#define MS2K_HAVE_AVX2 1
+#endif
 #endif
 #include "h8s2350_memory_map.h"
 #include "h8s2350_interrupt_system.h"

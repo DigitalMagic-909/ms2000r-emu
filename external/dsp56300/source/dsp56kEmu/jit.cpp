@@ -1,6 +1,6 @@
 #include "jit.h"
 
-#include <intrin.h>
+#include "returnaddress.h"
 #include <thread>
 #include <functional>
 
@@ -204,7 +204,7 @@ namespace dsp56k
 			{
 				++s_pbt;
 				std::fprintf(stderr, "[BT] funcRecreate(0x%06X) caller=%p interruptFunc=%p intIsRecreate=%d\n",
-					_pc, _ReturnAddress(), interruptFunc, interruptFunc == reinterpret_cast<void*>(&funcRecreate) ? 1 : 0);
+					_pc, DSP56K_RETURN_ADDRESS(), interruptFunc, interruptFunc == reinterpret_cast<void*>(&funcRecreate) ? 1 : 0);
 			}
 		}
 
@@ -353,7 +353,7 @@ namespace dsp56k
 			if (s_pr < 20)
 			{
 				++s_pr;
-				std::fprintf(stderr, "[TR] Jit::recreate(0x%06X) caller=%p\n", _pc, _ReturnAddress());
+				std::fprintf(stderr, "[TR] Jit::recreate(0x%06X) caller=%p\n", _pc, DSP56K_RETURN_ADDRESS());
 			}
 		}
 		// 2026-10-12 recreate-pingpong hunt: dispatch-state snapshot (capped) - chain count, current
@@ -475,7 +475,7 @@ namespace dsp56k
 					block ? block->getPCFirst() : 0xFFFFFF,
 					block ? *reinterpret_cast<void* const*>(&block->getFunc()) : nullptr,
 					block && block->getFunc() == &funcRecreate ? 1 : 0,
-					_ReturnAddress());
+					DSP56K_RETURN_ADDRESS());
 			}
 		}
 		m_trampoline.execOne(&m_dsp.regs(), _pc, block->getFunc());

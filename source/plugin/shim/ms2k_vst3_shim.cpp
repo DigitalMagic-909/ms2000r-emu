@@ -25,7 +25,7 @@
 #include <CoreFoundation/CoreFoundation.h>
 #include <dlfcn.h>
 #include <unistd.h>
-#include <filesystem>
+#include "../../core/fs_compat.h"   // MAC-LEGACY: std::filesystem, or ghc::filesystem before macOS 10.15
 #endif
 #include <atomic>
 #include <cstring>
@@ -150,7 +150,7 @@ PathStr tempDir()
     PathStr d = PathStr(t && *t ? t : "/tmp/");
     if (d.back() != '/') d += '/';
     d += "MS2000R_engines";
-    std::error_code ec; std::filesystem::create_directories(d, ec);
+    std::error_code ec; ms2k_fs::create_directories(d, ec);
     return d;
 }
 
@@ -158,13 +158,13 @@ PathStr tempDir()
 void cleanStaleCopies()
 {
     std::error_code ec;
-    for (const auto& e : std::filesystem::directory_iterator(tempDir(), ec))
-        if (e.path().filename().string().rfind("engine_", 0) == 0) std::filesystem::remove(e.path(), ec);
+    for (const auto& e : ms2k_fs::directory_iterator(tempDir(), ec))
+        if (e.path().filename().string().rfind("engine_", 0) == 0) ms2k_fs::remove(e.path(), ec);
 }
 
 void* symbol(ModuleHandle m, const char* name) { return dlsym(m, name); }
 void closeModule(ModuleHandle m) { dlclose(m); }
-void deleteFile(const PathStr& p) { std::error_code ec; std::filesystem::remove(p, ec); }
+void deleteFile(const PathStr& p) { std::error_code ec; ms2k_fs::remove(p, ec); }
 typedef bool (*BundleEntryProc)(CFBundleRef);
 bool callInit(ModuleHandle m) { auto f = reinterpret_cast<BundleEntryProc>(symbol(m, "bundleEntry")); return !f || f(g_bundle); }
 void callExit(ModuleHandle m) { if (auto f = reinterpret_cast<InitExitProc>(symbol(m, "bundleExit"))) f(); }
@@ -174,7 +174,7 @@ PathStr copyPath(unsigned n) { return tempDir() + "/engine_" + std::to_string(ge
 bool copyEngine(const PathStr& from, const PathStr& to)
 {
     std::error_code ec;
-    return std::filesystem::copy_file(from, to, std::filesystem::copy_options::overwrite_existing, ec);
+    return ms2k_fs::copy_file(from, to, ms2k_fs::copy_options::overwrite_existing, ec);
 }
 #endif
 

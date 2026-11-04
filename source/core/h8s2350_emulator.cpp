@@ -29,7 +29,7 @@ extern "C" void ms2k_phase(const char* p) { g_ms2kPhase = p; }
 #include <algorithm>
 #include <iomanip>
 #include <sstream>
-#include <filesystem>
+#include "fs_compat.h"   // MAC-LEGACY: std::filesystem, or ghc::filesystem before macOS 10.15
 #include <errno.h>
 #include <cstring>
 #include <cstdlib>   // 2026-09-13: getenv, for the TPU2 scaffold mode selector
@@ -9046,9 +9046,9 @@ bool H8S2350Emulator::loadFirmwareFromFile(const std::string& filename)
     
     // Try to get file size using filesystem
     try {
-        std::filesystem::path filePath(filename);
-        if (std::filesystem::exists(filePath)) {
-            std::cout << "File size (filesystem): " << std::filesystem::file_size(filePath) << " bytes" << std::endl;
+        ms2k_fs::path filePath(filename);
+        if (ms2k_fs::exists(filePath)) {
+            std::cout << "File size (filesystem): " << ms2k_fs::file_size(filePath) << " bytes" << std::endl;
         } else {
             std::cout << "File does not exist (filesystem check)" << std::endl;
         }

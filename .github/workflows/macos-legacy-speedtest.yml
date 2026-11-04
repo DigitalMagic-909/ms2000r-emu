@@ -1,0 +1,66 @@
+name: macOS 10.9 speed test (Intel, no AVX2)
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-15-intel
+    env:
+      MACOSX_DEPLOYMENT_TARGET: "10.9"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select newest Xcode 16
+        run: |
+          XCODE=$(ls -d /Applications/Xcode_16*.app | sort -V | tail -1)
+          echo "Using $XCODE"
+          sudo xcode-select -s "$XCODE"
+          xcodebuild -version
+
+      - name: Install Ninja
+        run: brew install ninja || true
+
+      - name: Configure
+        run: |
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_OSX_DEPLOYMENT_TARGET=10.9 -DCMAKE_OSX_ARCHITECTURES=x86_64 \
+            -DMS2K_X64_AVX2=OFF -DMS2K_X64_MARCH=ivybridge \
+            -DMS2K_MAC_GUI=OFF \
+            -DCMAKE_EXE_LINKER_FLAGS="-Wl,-ld_classic"
+
+      - name: Build
+        run: cmake --build build --target ms2000_emulator 2>&1 | tee build.log
+
+      - name: Availability warnings (APIs newer than 10.9)
+        run: grep -E "only available on macOS|unguarded-availability" build.log | sort -u | head -40 || true
+
+      - name: Check the binary
+        run: |
+          BIN=build/ms2000_emulator
+          lipo -info "$BIN"
+          otool -l "$BIN" | grep -A4 -E "LC_VERSION_MIN_MACOSX|LC_BUILD_VERSION"
+          otool -l "$BIN" | grep -E "^ +(version|minos) 10\.9$" \
+            || { echo "Minimum macOS is not 10.9"; exit 1; }
+          otool -L "$BIN"
+          # AVX2 / BMI instructions would crash an Ivy Bridge CPU
+          N=$(otool -tvV "$BIN" | grep -cE "\svp[a-z0-9]+\s.*%ymm|vpbroadcast|vperm2i128|vinserti128|vextracti128|vpgather|\s(shlx|shrx|sarx|pdep|pext|andn|bzhi|mulx|rorx|lzcnt|tzcnt)[lq]?\s" || true)
+          echo "AVX2/BMI-like instructions: $N"
+          otool -tvV "$BIN" | grep -E "\svp[a-z0-9]+\s.*%ymm|vpbroadcast|vperm2i128|vpgather|\s(shlx|shrx|sarx|pdep|pext|andn|bzhi|mulx|rorx|lzcnt|tzcnt)[lq]?\s" | grep -v vptest | head -5 || true
+          # Symbols the binary needs from macOS: show the ones from newer releases if any slipped in
+          nm -um "$BIN" | grep -E "align_val_t|__fs|filesystem|qos_class|os_unfair|clock_gettime|bad_optional" || echo "no 10.10+ symbols found"
+          ./"$BIN" --help | head -3
+
+      - name: Package
+        run: |
+          mkdir -p dist/MS2000R-snelheidstest
+          cp build/ms2000_emulator dist/MS2000R-snelheidstest/
+          cp packaging/macos-legacy/test-snelheid.command packaging/macos-legacy/LEESMIJ.txt dist/MS2000R-snelheidstest/
+          chmod +x dist/MS2000R-snelheidstest/ms2000_emulator dist/MS2000R-snelheidstest/test-snelheid.command
+          cd dist && ditto -c -k --keepParent MS2000R-snelheidstest ../MS2000R-snelheidstest-macOS10.9.zip
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MS2000R-snelheidstest-macOS10.9
+          path: MS2000R-snelheidstest-macOS10.9.zip
