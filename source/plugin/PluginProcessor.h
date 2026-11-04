@@ -2,6 +2,9 @@
 // Phase 2 (VST3-2): the panel's state (knob positions, input stage, DAC option, volume) and the machine's
 // non-volatile flash live in the host project; the editor draws the vector panel (vector_panel.h).
 #pragma once
+#ifndef MS2K_DSPTHREAD_DEFAULT
+#define MS2K_DSPTHREAD_DEFAULT 0
+#endif
 #include <JuceHeader.h>
 #include <memory>
 #include <vector>
@@ -53,7 +56,8 @@ public:
     int editorWDefault = 0;                              // UI-SIZE-1: the last editor width, a user default (settings file)
     int editorW = 0, editorTab = 0;                      // the editor's last width and page
     std::atomic<bool> hostClock{ true };                 // MIDI-CLOCK: the host tempo as F8 clocks into MIDI IN
-    std::atomic<bool> dspThread{ false };                // DSP-THREAD: the DSP on a second core (from the next start)
+    // MAC-LEGACY: MS2K_DSPTHREAD_DEFAULT=1 (older Intel Macs) makes it ON for a new install; Settings still decides
+    std::atomic<bool> dspThread{ MS2K_DSPTHREAD_DEFAULT != 0 };   // DSP-THREAD: the DSP on a second core (from the next start)
     std::atomic<bool> knobFollow{ false };               // KNOB-FOLLOW: the pots show the program (off = where you left them)
     std::atomic<bool> sysexOut{ true };                  // VSTHOST-SYSEX-1: hand the firmware's SysEx OUT to the host
     std::atomic<bool> powerSwitch{ true };               // PWR-SW-1: the Master VR's switch - POWER off at the minimum

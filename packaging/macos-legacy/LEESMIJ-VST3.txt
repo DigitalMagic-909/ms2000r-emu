@@ -1,0 +1,34 @@
+MS2000R VST3 voor oudere Intel-Macs (OS X 10.9 Mavericks en nieuwer)
+=====================================================================
+
+TESTVERSIE - gebouwd voor een Mac mini eind 2012 (i7, Ivy Bridge) en Cubase 7.5.
+
+1. Installeren
+   Kopieer MS2000R.vst3 naar:   /Library/Audio/Plug-Ins/VST3/
+   (Finder: Ga > Ga naar map... > /Library/Audio/Plug-Ins/VST3)
+
+   De plugin is niet door Apple ondertekend. Haal de quarantaine-vlag weg,
+   in Terminal:
+     sudo xattr -dr com.apple.quarantine "/Library/Audio/Plug-Ins/VST3/MS2000R.vst3"
+
+2. ROM-bestanden
+   Maak de map  Documenten/MS2000R  (~/Documents/MS2000R) en zet daarin:
+     flash.bin      (uit je eigen MS2000/MS2000R)
+     boot-362.bin
+     hd44780_a00.bin  (optioneel, voor het LCD-lettertype)
+   Of kies de map later in de plugin: Settings > "Choose the MS2000 folder...".
+
+3. Cubase
+   Start Cubase en laat het de plugins opnieuw scannen. De MS2000R staat
+   bij de instrumenten. Het opstarten van de emulator duurt een paar
+   seconden (zoals het echte apparaat) - noten daarvoor hoor je niet.
+
+4. Belangrijk voor de snelheid
+   In deze versie staat Settings > "DSP thread" standaard AAN: de DSP-chip
+   rekent dan op een eigen processorkern. Zonder die instelling is de
+   Mac mini te traag. Een buffer van 512 samples (of meer) in Cubase
+   (Apparaten > Apparaten instellen > VST Audiosysteem) geeft extra marge.
+
+Broncode: https://github.com/Tuth/ms2000r-emu (GPL-3.0), aangepast voor
+macOS 10.9 / x86_64 zonder AVX2. KORG en MS2000 zijn handelsmerken van
+KORG Inc.; dit project is niet verbonden aan KORG.

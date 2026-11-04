@@ -1,8 +1,11 @@
 name: macOS 10.9 speed test (Intel, no AVX2)
 
 on:
-  push:
   workflow_dispatch:
+  push:
+    paths:
+      - 'packaging/macos-legacy/test-snelheid.command'
+      - '.github/workflows/macos-legacy-speedtest.yml'
 
 jobs:
   build:

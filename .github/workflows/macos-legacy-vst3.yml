@@ -1,0 +1,74 @@
+name: macOS 10.9 VST3 (Intel, no AVX2)
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-15-intel
+    env:
+      MACOSX_DEPLOYMENT_TARGET: "10.9"   # also for JUCE's juceaide helper, built in its own CMake run
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select newest Xcode 16
+        run: |
+          XCODE=$(ls -d /Applications/Xcode_16*.app | sort -V | tail -1)
+          echo "Using $XCODE"
+          sudo xcode-select -s "$XCODE"
+          xcodebuild -version
+
+      - name: Install Ninja
+        run: brew install ninja || true
+
+      - name: Configure
+        run: |
+          cmake -S . -B build_vst -G Ninja -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_OSX_DEPLOYMENT_TARGET=10.9 -DCMAKE_OSX_ARCHITECTURES=x86_64 \
+            -DMS2K_X64_AVX2=OFF -DMS2K_X64_MARCH=ivybridge \
+            -DMS2K_MAC_GUI=OFF -DMS2K_BUILD_VST3=ON -DMS2K_DSPTHREAD_DEFAULT=ON \
+            -DCMAKE_EXE_LINKER_FLAGS="-Wl,-ld_classic" \
+            -DCMAKE_SHARED_LINKER_FLAGS="-Wl,-ld_classic" \
+            -DCMAKE_MODULE_LINKER_FLAGS="-Wl,-ld_classic"
+
+      - name: Build
+        run: |
+          set -o pipefail
+          cmake --build build_vst --target MS2000R_Shim 2>&1 | tee build.log
+
+      - name: Availability warnings (APIs newer than 10.9)
+        run: grep -E "only available on macOS|unguarded-availability" build.log | sort -u | head -40 || true
+
+      - name: Check the binaries
+        run: |
+          B=build_vst/VST3_multi/MS2000R.vst3
+          find "$B" -type f | head -20
+          for BIN in "$B/Contents/MacOS/MS2000R" "$B/Contents/Resources/MS2000R_engine"; do
+            echo "== $BIN"
+            lipo -info "$BIN"
+            otool -l "$BIN" | grep -A4 -E "LC_VERSION_MIN_MACOSX|LC_BUILD_VERSION"
+            otool -l "$BIN" | grep -E "^ +(version|minos) 10\.9$" \
+              || { echo "Minimum macOS is not 10.9"; exit 1; }
+            otool -L "$BIN"
+            otool -tvV "$BIN" | awk -F'\t' 'NF>=2 {print $2}' | awk '{print $1}' > mnemonics.txt
+            echo "-- mnemonics an Ivy Bridge lacks (count):"
+            grep -E "^(andn|bextr|blsi|blsmsk|blsr|bzhi|mulx|pdep|pext|rorx|sarx|shlx|shrx|lzcnt)[lq]?$|^vfn?m(add|sub)|^vpbroadcast|^vperm2i128$|^vperm[dq]$|^vpermps$|^vinserti128$|^vextracti128$|^vpgather|^vgather|^vpmaskmov|^vps(ll|rl|ra)v|^vpblendd$" mnemonics.txt | sort | uniq -c || true
+            echo "-- integer ops on ymm registers (AVX2):"
+            otool -tvV "$BIN" | awk -F'\t' 'NF>=3 {print $2" "$3}' | grep -E "^vp[a-z0-9]+ .*%ymm" | grep -vE "^vptest |^vpermil|^vperm2f128 " | awk '{print $1}' | sort | uniq -c || true
+            echo "-- symbols from newer macOS releases (non-weak):"
+            nm -um "$BIN" | grep -v "weak external" | grep -E "align_val_t|__fs|filesystem|qos_class|os_unfair|clock_gettime|bad_optional|bad_variant" || echo "none"
+          done
+          codesign -dv "$B" 2>&1 | head -5 || true
+
+      - name: Package
+        run: |
+          mkdir -p dist/MS2000R-VST3-macOS10.9
+          cp -R build_vst/VST3_multi/MS2000R.vst3 dist/MS2000R-VST3-macOS10.9/
+          cp packaging/macos-legacy/LEESMIJ-VST3.txt dist/MS2000R-VST3-macOS10.9/LEESMIJ.txt
+          cd dist && ditto -c -k --keepParent MS2000R-VST3-macOS10.9 ../MS2000R-VST3-macOS10.9.zip
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MS2000R-VST3-macOS10.9
+          path: MS2000R-VST3-macOS10.9.zip

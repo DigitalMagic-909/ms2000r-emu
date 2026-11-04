@@ -29,6 +29,17 @@ target_compile_definitions(MS2000R_VST PUBLIC
 target_link_libraries(MS2000R_VST PRIVATE ms2000
     juce::juce_audio_utils juce::juce_audio_processors
     PUBLIC juce::juce_recommended_config_flags juce::juce_recommended_warning_flags)
+# MAC-LEGACY: older Intel Macs (macOS below 10.15, see the top-level CMakeLists.txt)
+if(MS2K_NEED_ALIGNED_NEW)
+    target_sources(MS2000R_VST PRIVATE ${CMAKE_SOURCE_DIR}/source/core/aligned_new_compat.cpp)
+endif()
+if(APPLE AND CMAKE_OSX_DEPLOYMENT_TARGET AND CMAKE_OSX_DEPLOYMENT_TARGET VERSION_LESS 10.11)
+    target_link_libraries(MS2000R_VST PRIVATE "-framework AudioUnit")   # AudioComponent* live there before 10.11
+endif()
+option(MS2K_DSPTHREAD_DEFAULT "Plugin: the DSP on its own thread by default (Settings can still switch it)" OFF)
+if(MS2K_DSPTHREAD_DEFAULT)
+    target_compile_definitions(MS2000R_VST PRIVATE MS2K_DSPTHREAD_DEFAULT=1)
+endif()
 
 # A console host that loads the built .vst3 like a DAW does and renders a note through processBlock.
 juce_add_console_app(MS2000R_HostTest PRODUCT_NAME "MS2000R_HostTest")
