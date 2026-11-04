@@ -12,7 +12,9 @@ MS2000R-emulator in realtime te draaien.
    (Bij een dubbelklik weigert macOS het de eerste keer, omdat het
    programma niet door Apple is ondertekend.)
 
-3. Er opent een Terminal-venster. Wacht tot de uitkomst verschijnt:
+3. Er opent een Terminal-venster. De test draait twee keer: eerst alles op
+   een processorkern, daarna met de DSP-chip op een eigen kern.
+   Wacht tot de uitkomst verschijnt:
      1.3x of meer  = goed
      1.0 - 1.3x    = krap
      minder dan 1x = te traag
