@@ -46,10 +46,17 @@ jobs:
           otool -l "$BIN" | grep -E "^ +(version|minos) 10\.9$" \
             || { echo "Minimum macOS is not 10.9"; exit 1; }
           otool -L "$BIN"
-          # AVX2 / BMI instructions would crash an Ivy Bridge CPU
-          N=$(otool -tvV "$BIN" | grep -cE "\svp[a-z0-9]+\s.*%ymm|vpbroadcast|vperm2i128|vinserti128|vextracti128|vpgather|\s(shlx|shrx|sarx|pdep|pext|andn|bzhi|mulx|rorx|lzcnt|tzcnt)[lq]?\s" || true)
-          echo "AVX2/BMI-like instructions: $N"
-          otool -tvV "$BIN" | grep -E "\svp[a-z0-9]+\s.*%ymm|vpbroadcast|vperm2i128|vpgather|\s(shlx|shrx|sarx|pdep|pext|andn|bzhi|mulx|rorx|lzcnt|tzcnt)[lq]?\s" | grep -v vptest | head -5 || true
+          # Instructions an Ivy Bridge CPU does not have (AVX2, BMI1/2, LZCNT, FMA). AVX1 ymm ops are fine.
+          # tzcnt is listed separately: without BMI1 it executes as bsf (same result for non-zero input),
+          # and LLVM emits it on purpose where the input cannot be zero.
+          otool -tvV "$BIN" | awk -F'\t' 'NF>=2 {print $2}' | awk '{print $1}' > mnemonics.txt
+          echo "== mnemonics an Ivy Bridge lacks (count):"
+          grep -E "^(andn|bextr|blsi|blsmsk|blsr|bzhi|mulx|pdep|pext|rorx|sarx|shlx|shrx|lzcnt)[lq]?$|^vfn?m(add|sub)|^vpbroadcast|^vperm2i128$|^vperm[dq]$|^vpermps$|^vinserti128$|^vextracti128$|^vpgather|^vgather|^vpmaskmov|^vps(ll|rl|ra)v|^vpblendd$" mnemonics.txt | sort | uniq -c || true
+          echo "== tzcnt (runs as bsf on Ivy Bridge):"
+          grep -cE "^tzcnt[lq]?$" mnemonics.txt || true
+          # integer ymm operations (AVX2): need the operands, so check full lines
+          echo "== integer ops on ymm registers (AVX2):"
+          otool -tvV "$BIN" | awk -F'\t' 'NF>=3 {print $2" "$3}' | grep -E "^vp[a-z0-9]+ .*%ymm" | grep -vE "^vptest |^vpermil|^vperm2f128 " | awk '{print $1}' | sort | uniq -c || true
           # Symbols the binary needs from macOS: show the ones from newer releases if any slipped in
           nm -um "$BIN" | grep -E "align_val_t|__fs|filesystem|qos_class|os_unfair|clock_gettime|bad_optional" || echo "no 10.10+ symbols found"
           ./"$BIN" --help | head -3
