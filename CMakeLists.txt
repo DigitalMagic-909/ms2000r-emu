@@ -305,6 +305,10 @@ if(APPLE)
     target_compile_definitions(ms2000_emulator PRIVATE MS2K_HOST_IO)
     target_link_libraries(ms2000_emulator
         "-framework CoreAudio" "-framework AudioToolbox" "-framework CoreMIDI" "-framework CoreFoundation")
+    if(CMAKE_OSX_DEPLOYMENT_TARGET AND CMAKE_OSX_DEPLOYMENT_TARGET VERSION_LESS 10.11)
+        # MAC-LEGACY: before 10.11 AudioComponent* / AudioUnit* / AudioOutputUnit* are exported by AudioUnit.framework
+        target_link_libraries(ms2000_emulator "-framework AudioUnit")
+    endif()
 endif()
 
 # fw28.txt: Try to add ImGui Win32/DX11 support for GUI mode
