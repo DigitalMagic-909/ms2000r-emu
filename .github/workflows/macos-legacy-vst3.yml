@@ -35,7 +35,7 @@ jobs:
       - name: Build
         run: |
           set -o pipefail
-          cmake --build build_vst --target MS2000R_Shim 2>&1 | tee build.log
+          cmake --build build_vst --target MS2000R_Shim ms2000_emulator 2>&1 | tee build.log
 
       - name: Availability warnings (APIs newer than 10.9)
         run: grep -E "only available on macOS|unguarded-availability" build.log | sort -u | head -40 || true
@@ -60,6 +60,21 @@ jobs:
             nm -um "$BIN" | grep -v "weak external" | grep -E "align_val_t|__fs|filesystem|qos_class|os_unfair|clock_gettime|bad_optional|bad_variant" || echo "none"
           done
           codesign -dv "$B" 2>&1 | head -5 || true
+
+      - name: Check every imported symbol against the OS X 10.9 SDK
+        run: |
+          for URL in https://github.com/phracker/MacOSX-SDKs/releases/download/11.3/MacOSX10.9.sdk.tar.xz \
+                     https://github.com/phracker/MacOSX-SDKs/releases/download/10.15/MacOSX10.9.sdk.tar.xz \
+                     https://github.com/phracker/MacOSX-SDKs/releases/download/MacOSX10.11.sdk/MacOSX10.9.sdk.tar.xz; do
+            curl -fsSL "$URL" -o sdk.tar.xz && break
+          done
+          mkdir -p oldsdk && tar -xJf sdk.tar.xz -C oldsdk
+          SDK=$(ls -d oldsdk/MacOSX10.9.sdk)
+          ls "$SDK/usr/lib" | head -5
+          B=build_vst/VST3_multi/MS2000R.vst3
+          # control: the speed-test program, which ran fine on 10.9.5
+          python3 packaging/macos-legacy/check_against_sdk.py "$SDK" build_vst/ms2000_emulator || true
+          python3 packaging/macos-legacy/check_against_sdk.py "$SDK" "$B/Contents/MacOS/MS2000R" "$B/Contents/Resources/MS2000R_engine" || true
 
       - name: Package
         run: |
