@@ -86,6 +86,11 @@ namespace dsp56k
 
 	private:
 		std::atomic<uint32_t> m_seq{0};	// futex word; every notify bumps it, wait blocks while it is unchanged
+
+		// MS2000R MAC-LEGACY: __ulock_* exist since macOS 10.12. They are weak-imported; on older systems
+		// (OS X 10.9 - 10.11) the same sequence word is waited on with this mutex/condition variable instead.
+		std::mutex m_fallbackMutex;
+		std::condition_variable m_fallbackCv;
 	};
 #else
 	using ConditionVariable = std::condition_variable;

@@ -74,7 +74,7 @@ jobs:
           B=build_vst/VST3_multi/MS2000R.vst3
           # control: the speed-test program, which ran fine on 10.9.5
           python3 packaging/macos-legacy/check_against_sdk.py "$SDK" build_vst/ms2000_emulator || true
-          python3 packaging/macos-legacy/check_against_sdk.py "$SDK" "$B/Contents/MacOS/MS2000R" "$B/Contents/Resources/MS2000R_engine" || true
+          python3 packaging/macos-legacy/check_against_sdk.py "$SDK" "$B/Contents/MacOS/MS2000R" "$B/Contents/Resources/MS2000R_engine"
 
       - name: Package
         run: |
