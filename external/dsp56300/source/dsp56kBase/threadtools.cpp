@@ -128,7 +128,10 @@ namespace dsp56k
 		default: return false;
 		}
 
-		const auto result = pthread_set_qos_class_self_np(qosClass, 0);
+		// MS2000R MAC-LEGACY: QoS classes exist since macOS 10.10 (the symbol is weak on older targets)
+		int result = ENOTSUP;
+		if (__builtin_available(macOS 10.10, *))
+			result = pthread_set_qos_class_self_np(qosClass, 0);
 		if (result != 0)
 			LOG("Failed to set thread QOS class to " << qosClass << ": " << strerror(result));
 
@@ -227,7 +230,8 @@ namespace dsp56k
 	{
 #ifdef __APPLE__
 		qos_class_t qos = QOS_CLASS_UNSPECIFIED;
-		pthread_get_qos_class_np(pthread_self(), &qos, nullptr);
+		if (__builtin_available(macOS 10.10, *))	// MS2000R MAC-LEGACY
+			pthread_get_qos_class_np(pthread_self(), &qos, nullptr);
 		return static_cast<uint32_t>(qos);
 #else
 		return 0;

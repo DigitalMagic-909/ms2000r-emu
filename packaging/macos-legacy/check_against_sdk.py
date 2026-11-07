@@ -109,10 +109,17 @@ for b in bins:
         print(f"   LIBRARY NOT ON THIS macOS: {l}")
         bad += 1
     missing = {}
+    weak_missing = []
     for line in run("nm", "-m", "-u", b).splitlines():
         m = re.match(r"\s*\(undefined\) (weak )?external (\S+) \(from ([^)]+)\)", line)
-        if not m or m.group(1):
-            continue                       # weak references may be missing
+        if not m:
+            continue
+        if m.group(1):                     # weak references may be missing - but each one must be guarded
+            inst = by_short.get(m.group(3))
+            ex = exports(inst) if inst and not inst.startswith("@") else None
+            if inst and inst not in weak_libs and ex is not None and m.group(2) not in ex:
+                weak_missing.append(f"{m.group(2)} ({m.group(3)})")
+            continue
         sym, lib = m.group(2), m.group(3)
         inst = by_short.get(lib)
         if inst is None or inst in weak_libs or inst.startswith("@"):
@@ -128,5 +135,7 @@ for b in bins:
             bad += 1
     if not missing and not missing_libs:
         print("   all symbols found")
+    for w in sorted(weak_missing):
+        print(f"   (weak, absent on this macOS - must only be called behind an availability check: {w})")
 print(f"{bad} problem(s)")
 sys.exit(1 if bad else 0)
